@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 /**
  * @license Copyright (c) 2003-2021, CKSource - Frederico Knabben. All rights reserved.
  * For licensing, see LICENSE.md or https://ckeditor.com/legal/ckeditor-oss-license
@@ -20,6 +21,7 @@ import ImageCaption from '@ckeditor/ckeditor5-image/src/imagecaption';
 import ImageStyle from '@ckeditor/ckeditor5-image/src/imagestyle';
 import ImageToolbar from '@ckeditor/ckeditor5-image/src/imagetoolbar';
 import ImageUpload from '@ckeditor/ckeditor5-image/src/imageupload';
+import ImageResize from '@ckeditor/ckeditor5-image/src/imageresize';
 import Indent from '@ckeditor/ckeditor5-indent/src/indent';
 import Link from '@ckeditor/ckeditor5-link/src/link';
 import List from '@ckeditor/ckeditor5-list/src/list';
@@ -30,6 +32,70 @@ import Table from '@ckeditor/ckeditor5-table/src/table';
 import TableToolbar from '@ckeditor/ckeditor5-table/src/tabletoolbar';
 import TextTransformation from '@ckeditor/ckeditor5-typing/src/texttransformation';
 import CloudServices from '@ckeditor/ckeditor5-cloud-services/src/cloudservices';
+import ButtonView from '@ckeditor/ckeditor5-ui/src/button/buttonview';
+import Plugin from '@ckeditor/ckeditor5-core/src/plugin';
+import WProofreader from '@webspellchecker/wproofreader-ckeditor5/src/wproofreader';
+import imageIcon from '@ckeditor/ckeditor5-core/theme/icons/image.svg';
+import cutIcon from './cut.svg';
+import copyIcon from './copy.svg';
+class PastePlainTextUI extends Plugin {
+	init() {
+		const editor = this.editor;
+		addButton( 'copy', 'Copy', copyIcon );
+		addButton( 'cut', 'Cut', cutIcon );
+
+		function addButton( action, label, icon ) {
+			editor.ui.componentFactory.add( action, locale => {
+				const view = new ButtonView( locale );
+
+				view.set( {
+					withText: true,
+					tooltip: true,
+					icon
+				} );
+
+				view.on( 'execute', () => {
+					document.execCommand( action );
+				} );
+
+				return view;
+			} );
+		}
+	}
+}
+
+class InsertImage extends Plugin {
+	init() {
+		const editor = this.editor;
+
+		editor.ui.componentFactory.add( 'insertImage', locale => {
+			const view = new ButtonView( locale );
+
+			view.set( {
+				label: 'Insert image',
+				icon: imageIcon,
+				tooltip: true
+			} );
+
+			// Callback executed once the image is clicked.
+			view.on( 'execute', () => {
+				// eslint-disable-next-line no-alert
+				const imageUrl = prompt( 'Image URL' );
+
+				editor.model.change( writer => {
+					const imageElement = writer.createElement( 'imageBlock', {
+						src: imageUrl
+					} );
+
+					// Insert the image in the current selection location.
+					editor.model.insertContent( imageElement, editor.model.document.selection );
+				} );
+			} );
+
+			return view;
+		} );
+	}
+}
 
 export default class ClassicEditor extends ClassicEditorBase {}
 
@@ -58,30 +124,44 @@ ClassicEditor.builtinPlugins = [
 	PasteFromOffice,
 	Table,
 	TableToolbar,
-	TextTransformation
+	TextTransformation,
+	PastePlainTextUI,
+	WProofreader,
+	ImageResize,
+	InsertImage
 ];
 
 // Editor configuration.
 ClassicEditor.defaultConfig = {
 	toolbar: {
 		items: [
-			'heading',
+			'copy',
+			'cut',
 			'|',
+			'undo',
+			'redo',
+			'|',
+			'wproofreader',
+			'|',
+			'link',
+			'|',
+			'InsertImage',
+			'mediaEmbed',
+			'|',
+			'-',
 			'bold',
 			'italic',
-			'link',
+			'underline',
+			'Strikethrough',
+			'|',
+			'alignment',
+			'|',
 			'bulletedList',
 			'numberedList',
 			'|',
-			'outdent',
-			'indent',
-			'|',
-			'uploadImage',
 			'blockQuote',
-			'insertTable',
-			'mediaEmbed',
-			'undo',
-			'redo'
+			'|',
+			'heading'
 		]
 	},
 	image: {
@@ -94,13 +174,13 @@ ClassicEditor.defaultConfig = {
 			'imageTextAlternative'
 		]
 	},
-	table: {
-		contentToolbar: [
-			'tableColumn',
-			'tableRow',
-			'mergeTableCells'
-		]
+	alignment: {
+		options: [ 'left', 'right', 'center', 'justify' ]
 	},
-	// This value must be kept in sync with the language defined in webpack.config.js.
-	language: 'en'
+	language: 'en',
+	wproofreader: {
+		lang: 'en_US', // sets the default language
+		serviceId: 'VgpyX435O74ihVB', // required for the Cloud version only
+		srcUrl: 'https://svc.webspellchecker.net/spellcheck31/wscbundle/wscbundle.js'
+	}
 };
