@@ -30,6 +30,76 @@ import Table from '@ckeditor/ckeditor5-table/src/table';
 import TableToolbar from '@ckeditor/ckeditor5-table/src/tabletoolbar';
 import TextTransformation from '@ckeditor/ckeditor5-typing/src/texttransformation';
 import CloudServices from '@ckeditor/ckeditor5-cloud-services/src/cloudservices';
+import ImageResize from '@ckeditor/ckeditor5-image/src/imageresize';
+import WProofreader from '@webspellchecker/wproofreader-ckeditor5/src/wproofreader';
+import Alignment from '@ckeditor/ckeditor5-alignment/src/alignment';
+import Plugin from '@ckeditor/ckeditor5-core/src/plugin';
+import ButtonView from '@ckeditor/ckeditor5-ui/src/button/buttonview';
+import imageIcon from '@ckeditor/ckeditor5-core/theme/icons/image.svg';
+import cutIcon from './cut.svg';
+import copyIcon from './copy.svg';
+
+class PastePlainTextUI extends Plugin {
+	init() {
+		const editor = this.editor;
+		addButton( 'copy', 'Copy', 'Ctrl+C', copyIcon );
+		addButton( 'cut', 'Cut', 'Ctrl+V', cutIcon );
+
+		function addButton( action, label, keystroke, icon ) {
+			editor.ui.componentFactory.add( action, locale => {
+				const view = new ButtonView( locale );
+
+				view.set( {
+					withText: true,
+					tooltip: true,
+					label,
+					keystroke,
+					icon,
+					withText: false,
+				} );
+
+				view.on( 'execute', () => {
+					document.execCommand( action );
+				} );
+
+				return view;
+			} );
+		}
+	}
+}
+
+class InsertImage extends Plugin {
+	init() {
+		const editor = this.editor;
+
+		editor.ui.componentFactory.add( 'insertImage', locale => {
+			const view = new ButtonView( locale );
+
+			view.set( {
+				label: 'Insert image',
+				icon: imageIcon,
+				tooltip: true
+			} );
+
+			// Callback executed once the image is clicked.
+			view.on( 'execute', () => {
+				// eslint-disable-next-line no-alert
+				const imageUrl = prompt( 'Image URL' );
+
+				editor.model.change( writer => {
+					const imageElement = writer.createElement( 'imageBlock', {
+						src: imageUrl
+					} );
+
+					// Insert the image in the current selection location.
+					editor.model.insertContent( imageElement, editor.model.document.selection );
+				} );
+			} );
+
+			return view;
+		} );
+	}
+}
 
 export default class ClassicEditor extends ClassicEditorBase {}
 
@@ -58,30 +128,45 @@ ClassicEditor.builtinPlugins = [
 	PasteFromOffice,
 	Table,
 	TableToolbar,
-	TextTransformation
+	TextTransformation,
+	WProofreader,
+	Alignment,
+	ImageResize,
+	PastePlainTextUI,
+	InsertImage,
 ];
 
 // Editor configuration.
 ClassicEditor.defaultConfig = {
 	toolbar: {
 		items: [
-			'heading',
+			'copy',
+			'cut',
 			'|',
+			'undo',
+			'redo',
+			'|',
+			'wproofreader',
+			'|',
+			'link',
+			'|',
+			'InsertImage',
+			'mediaEmbed',
+			'|',
+			'-',
 			'bold',
 			'italic',
-			'link',
+			'underline',
+			'Strikethrough',
+			'|',
+			'alignment',
+			'|',
 			'bulletedList',
 			'numberedList',
 			'|',
-			'outdent',
-			'indent',
-			'|',
-			'uploadImage',
 			'blockQuote',
-			'insertTable',
-			'mediaEmbed',
-			'undo',
-			'redo'
+			'|',
+			'heading'
 		]
 	},
 	image: {
@@ -94,13 +179,13 @@ ClassicEditor.defaultConfig = {
 			'imageTextAlternative'
 		]
 	},
-	table: {
-		contentToolbar: [
-			'tableColumn',
-			'tableRow',
-			'mergeTableCells'
-		]
+	alignment: {
+		options: [ 'left', 'right', 'center', 'justify' ]
 	},
-	// This value must be kept in sync with the language defined in webpack.config.js.
-	language: 'en'
+	language: 'en',
+	wproofreader: {
+		lang: 'en_US', // sets the default language
+		serviceId: 'VgpyX435O74ihVB', // required for the Cloud version only
+		srcUrl: 'https://svc.webspellchecker.net/spellcheck31/wscbundle/wscbundle.js'
+	}
 };
