@@ -41,17 +41,20 @@ import copyIcon from './copy.svg';
 class PastePlainTextUI extends Plugin {
 	init() {
 		const editor = this.editor;
-		addButton( 'copy', 'Copy', copyIcon );
-		addButton( 'cut', 'Cut', cutIcon );
+		addButton( 'copy', 'Copy', 'Ctrl+C', copyIcon );
+		addButton( 'cut', 'Cut', 'Ctrl+V', cutIcon );
 
-		function addButton( action, label, icon ) {
+		function addButton( action, label, keystroke, icon ) {
 			editor.ui.componentFactory.add( action, locale => {
 				const view = new ButtonView( locale );
 
 				view.set( {
 					withText: true,
 					tooltip: true,
-					icon
+					label,
+					keystroke,
+					icon,
+					withText: false,
 				} );
 
 				view.on( 'execute', () => {
